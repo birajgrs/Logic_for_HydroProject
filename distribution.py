@@ -11,6 +11,16 @@ def get_sector_data():
     }
     return sectors
 
+'''
+sector data into loop 
+add by user to sectors 
+for 1 to n :
+daily expenses how much cast goes to nea 
+on this basis give % in loop 
+give own data 
+all sector expenses only to nea is the income+x of nea . 
+'''
+
 def adjust_distribution(sectors):
     total_percentage = sum(sector["percentage"] for sector in sectors.values())
 
@@ -27,7 +37,7 @@ def adjust_distribution(sectors):
     return sectors
 
 def calculate_combined_values(sectors, total_investment, discount_rate, operational_days, project_lifetime):
-    combined_daily_income = sum(sector["daily_income"] * sector["adjusted_percentage"] for sector in sectors.values())
+    combined_daily_income   = sum(sector["daily_income"] * sector["adjusted_percentage"] for sector in sectors.values())
     combined_daily_expenses = sum(sector["daily_expenses"] * sector["adjusted_percentage"] for sector in sectors.values())
 
     roi_time = logic.calculate_roi(total_investment, combined_daily_expenses, combined_daily_income)
