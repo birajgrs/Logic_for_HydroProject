@@ -1,4 +1,3 @@
-# distribution.py
 
 import importlib
 import logic
