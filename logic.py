@@ -35,18 +35,19 @@ def calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_un
     return break_even_units
 
 # Main script
-initial_investment, total_investment, daily_expenses, daily_income, discount_rate, operational_days, project_lifetime = get_user_input()
+if __name__ == "__main__":
+    initial_investment, total_investment, daily_expenses, daily_income, discount_rate, operational_days, project_lifetime = get_user_input()
 
-roi_time = calculate_roi(initial_investment, daily_expenses, daily_income)
-npv = calculate_npv(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
-profitability_index = calculate_profitability_index(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
+    roi_time = calculate_roi(initial_investment, daily_expenses, daily_income)
+    npv = calculate_npv(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
+    profitability_index = calculate_profitability_index(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
 
-fixed_costs = total_investment
-price_per_unit = daily_income / operational_days
-variable_cost_per_unit = daily_expenses / operational_days
-break_even_units = calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_unit)
+    fixed_costs = total_investment
+    price_per_unit = daily_income / operational_days
+    variable_cost_per_unit = daily_expenses / operational_days
+    break_even_units = calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_unit)
 
-print(f"ROI Time: {roi_time:.2f} days")
-print(f"NPV: {npv:.2f}")
-print(f"Profitability Index: {profitability_index:.2f}")
-print(f"Break-Even Point: {break_even_units:.2f} units/day")
+    print(f"ROI Time: {roi_time:.2f} days")
+    print(f"NPV: {npv:.2f}")
+    print(f"Profitability Index: {profitability_index:.2f}")
+    print(f"Break-Even Point: {break_even_units:.2f} units/day")
