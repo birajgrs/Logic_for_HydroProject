@@ -11,6 +11,7 @@ def get_sector_data(sectors):
 
 
 def adjust_distribution(sectors):
+    sectors = get_sector_data(sectors)  # Calculate revenue first
     total_revenue = sum(sector["revenue"] for sector in sectors)
 
     for sector in sectors:
@@ -53,6 +54,9 @@ def display_sector_info(sectors):
 def main():
     initial_investment, total_investment, discount_rate, operational_days, project_lifetime, sectors = logic.get_user_input()
 
+    # Adjust distribution
+    sectors = adjust_distribution(sectors)
+
     # Before adjustment
     total_daily_income = sum(sector['paid_for_nea'] for sector in sectors)
     total_daily_expenses = sum(sector['other_expenses'] + sector['paid_for_nea'] for sector in sectors)
@@ -78,9 +82,6 @@ def main():
     for sector in sectors:
         print(
             f"{sector['name']}: Daily Income (Paid_for_NEA) = {sector['paid_for_nea']}, Daily Expenses (other expenses + Paid_for_NEA) = {sector['other_expenses'] + sector['paid_for_nea']}")
-
-    # Adjust distribution
-    sectors = adjust_distribution(sectors)
 
     # After adjustment
     roi_time_after, npv_after, profitability_index_after = calculate_combined_values(sectors, total_investment,
