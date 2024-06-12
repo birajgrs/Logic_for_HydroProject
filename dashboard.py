@@ -10,8 +10,10 @@ import pandas as pd
 
 
 def plot_pie_chart(data, title):
-    labels = data.keys()
-    sizes = data.values()
+    # Filter out negative values
+    filtered_data = {k: v for k, v in data.items() if v >= 0}
+    labels = filtered_data.keys()
+    sizes = filtered_data.values()
     plt.figure(figsize=(10, 6))
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140)
     plt.title(title)
