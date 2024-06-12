@@ -1,53 +1,184 @@
-def get_user_input():
-    initial_investment = float(input("Enter the initial investment: "))
-    total_investment = float(input("Enter the total investment for constructing full power houses: "))
-    daily_expenses = float(input("Enter the daily expenses: "))
-    daily_income = float(input("Enter the daily income: "))
-    discount_rate = float(input("Enter the discount rate (as a decimal, e.g., 0.1 for 10%): "))
-    operational_days = int(input("Enter the number of operational days per year: "))
-    project_lifetime = int(input("Enter the project lifetime in years: "))
+import logic
+import math
 
-    return initial_investment, total_investment, daily_expenses, daily_income, discount_rate, operational_days, project_lifetime
 
-def calculate_roi(initial_investment, daily_expenses, daily_income):
-    net_daily_profit = daily_income - daily_expenses
-    roi_time = initial_investment / net_daily_profit
-    return roi_time
+def get_sector_data(sectors):
+    total_paid_for_nea = sum(sector["paid_for_nea"] for sector in sectors)
+    for sector in sectors:
+        revenue = sector["paid_for_nea"] - sector["other_expenses"]
+        sector["revenue"] = revenue
+        sector["adjusted_percentage"] = sector["paid_for_nea"] / total_paid_for_nea
+    return sectors
 
-def calculate_npv(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime):
-    npv = 0
-    for t in range(project_lifetime):
-        cash_flow = (daily_income - daily_expenses) * operational_days
-        npv += cash_flow / (1 + discount_rate) ** (t + 1)
-    npv -= initial_investment
-    return npv
 
-def calculate_profitability_index(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime):
-    pv_cash_flows = 0
-    for t in range(project_lifetime):
-        cash_flow = (daily_income - daily_expenses) * operational_days
-        pv_cash_flows += cash_flow / (1 + discount_rate) ** (t + 1)
-    pi = pv_cash_flows / initial_investment
-    return pi
+def adjust_distribution(sectors):
+    total_percentage = sum(sector["adjusted_percentage"] for sector in sectors)
 
-def calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_unit):
-    break_even_units = fixed_costs / (price_per_unit - variable_cost_per_unit)
-    return break_even_units
+    for sector in sectors:
+        revenue = sector["revenue"]
+        sector["adjusted_percentage"] += (revenue / total_percentage) * 0.1
 
-# Main script
-if __name__ == "__main__":
-    initial_investment, total_investment, daily_expenses, daily_income, discount_rate, operational_days, project_lifetime = get_user_input()
+    # Normalize percentages to sum up to 1
+    total_adjusted_percentage = sum(sector["adjusted_percentage"] for sector in sectors)
+    for sector in sectors:
+        sector["adjusted_percentage"] /= total_adjusted_percentage
 
-    roi_time = calculate_roi(initial_investment, daily_expenses, daily_income)
-    npv = calculate_npv(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
-    profitability_index = calculate_profitability_index(initial_investment, daily_income, daily_expenses, discount_rate, operational_days, project_lifetime)
+    return sectors
+
+
+def calculate_combined_values(sectors, total_investment, discount_rate, operational_days, project_lifetime):
+    combined_daily_income = sum(sector["paid_for_nea"] * sector["adjusted_percentage"] for sector in sectors)
+    combined_daily_expenses = sum(
+        (sector["other_expenses"] + sector["paid_for_nea"]) * sector["adjusted_percentage"] for sector in sectors)
+
+    roi_time = logic.calculate_roi(total_investment, combined_daily_expenses, combined_daily_income)
+    npv = logic.calculate_npv(total_investment, combined_daily_income, combined_daily_expenses, discount_rate,
+                              operational_days, project_lifetime)
+    profitability_index = logic.calculate_profitability_index(total_investment, combined_daily_income,
+                                                              combined_daily_expenses, discount_rate, operational_days,
+                                                              project_lifetime)
+
+    return roi_time, npv, profitability_index
+
+
+def display_sector_info(sectors):
+    sorted_sectors = sorted(sectors, key=lambda x: x["revenue"], reverse=True)
+    most_revenue_sector = sorted_sectors[0]
+    least_revenue_sector = sorted_sectors[-1]
+
+    print("\nSector Revenue and Distribution:")
+    for sector in sorted_sectors:
+        print(
+            f"{sector['name']}: Revenue = {sector['revenue']:.2f}, Adjusted Percentage = {sector['adjusted_percentage'] * 100:.2f}%")
+
+    print(
+        f"\nSector with the Most Revenue: {most_revenue_sector['name']} with Revenue = {most_revenue_sector['revenue']:.2f}")
+    print(
+        f"Sector with the Least Revenue: {least_revenue_sector['name']} with Revenue = {least_revenue_sector['revenue']:.2f}")
+
+
+def linear_regression(data):
+    n = len(data)
+    x_sum = sum(i for i in range(n))
+    y_sum = sum(data)
+    xy_sum = sum(i * data[i] for i in range(n))
+    x_squared_sum = sum(i ** 2 for i in range(n))
+
+    a = (n * xy_sum - x_sum * y_sum) / (n * x_squared_sum - x_sum ** 2)
+    b = (y_sum - a * x_sum) / n
+
+    return a, b
+
+
+def logistic_regression(data):
+    def sigmoid(x):
+        return 1 / (1 + math.exp(-x))
+
+    def predict(coefs, x):
+        return sigmoid(coefs[0] + coefs[1] * x)
+
+    def loss(coefs):
+        return sum((data[i] - predict(coefs, i)) ** 2 for i in range(len(data))) / len(data)
+
+    initial_coefs = [0, 0]
+
+    # Simple gradient descent for optimization
+    learning_rate = 0.01
+    num_iterations = 10000
+
+    coefs = initial_coefs
+    for _ in range(num_iterations):
+        gradients = [0, 0]
+        for i in range(len(data)):
+            prediction = predict(coefs, i)
+            error = data[i] - prediction
+            gradients[0] += -2 * error * prediction * (1 - prediction)
+            gradients[1] += -2 * error * prediction * (1 - prediction) * i
+
+        coefs[0] -= learning_rate * gradients[0] / len(data)
+        coefs[1] -= learning_rate * gradients[1] / len(data)
+
+    return coefs
+
+
+def main():
+    initial_investment, total_investment, discount_rate, operational_days, project_lifetime, sectors = logic.get_user_input()
+
+    # Before adjustment
+    total_daily_income = sum(sector['paid_for_nea'] for sector in sectors)
+    total_daily_expenses = sum(sector['other_expenses'] + sector['paid_for_nea'] for sector in sectors)
+
+    roi_time_before = logic.calculate_roi(initial_investment, total_daily_expenses, total_daily_income)
+    npv_before = logic.calculate_npv(initial_investment, total_daily_income, total_daily_expenses, discount_rate,
+                                     operational_days, project_lifetime)
+    profitability_index_before = logic.calculate_profitability_index(initial_investment, total_daily_income,
+                                                                     total_daily_expenses, discount_rate,
+                                                                     operational_days, project_lifetime)
 
     fixed_costs = total_investment
-    price_per_unit = daily_income / operational_days
-    variable_cost_per_unit = daily_expenses / operational_days
-    break_even_units = calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_unit)
+    price_per_unit = total_daily_income / operational_days
+    variable_cost_per_unit = total_daily_expenses / operational_days
+    break_even_units_before = logic.calculate_break_even_point(fixed_costs, price_per_unit, variable_cost_per_unit)
 
-    print(f"ROI Time: {roi_time:.2f} days")
-    print(f"NPV: {npv:.2f}")
-    print(f"Profitability Index: {profitability_index:.2f}")
-    print(f"Break-Even Point: {break_even_units:.2f} units/day")
+    print("\nBefore distribution adjustment:")
+    print(f"ROI Time: {roi_time_before:.2f} days")
+    print(f"NPV: {npv_before:.2f}")
+    print(f"Profitability Index: {profitability_index_before:.2f}")
+    print(f"Break-Even Point: {break_even_units_before:.2f} units/day")
+    print("Sector details before adjustment:")
+    for sector in sectors:
+        print(
+            f"{sector['name']}: Daily Income (Paid_for_NEA) = {sector['paid_for_nea']}, Daily Expenses (other expenses + Paid_for_NEA) = {sector['other_expenses'] + sector['paid_for_nea']}")
+
+    # Adjust distribution
+    sectors = adjust_distribution(sectors)
+
+    # After adjustment
+    roi_time_after, npv_after, profitability_index_after = calculate_combined_values(sectors, total_investment,
+                                                                                     discount_rate, operational_days,
+                                                                                     project_lifetime)
+
+    total_daily_income_after = sum(sector['paid_for_nea'] * sector['adjusted_percentage'] for sector in sectors)
+    total_daily_expenses_after = sum(
+        (sector['other_expenses'] + sector['paid_for_nea']) * sector['adjusted_percentage'] for sector in sectors)
+
+    price_per_unit_after = total_daily_income_after / operational_days
+    variable_cost_per_unit_after = total_daily_expenses_after / operational_days
+    break_even_units_after = logic.calculate_break_even_point(fixed_costs, price_per_unit_after,
+                                                              variable_cost_per_unit_after)
+
+    print("\nAfter distribution adjustment:")
+    print(f"ROI Time: {roi_time_after:.2f} days")
+    print(f"NPV: {npv_after:.2f}")
+    print(f"Profitability Index: {profitability_index_after:.2f}")
+    print(f"Break-Even Point: {break_even_units_after:.2f} units/day")
+    display_sector_info(sectors)
+
+    # Linear and logistic regression data
+    roi_times = [roi_time_before, roi_time_after]
+    npvs = [npv_before, npv_after]
+    profitability_indices = [profitability_index_before, profitability_index_after]
+
+    # Linear Regression
+    a_roi, b_roi = linear_regression(roi_times)
+    a_npv, b_npv = linear_regression(npvs)
+    a_pi, b_pi = linear_regression(profitability_indices)
+
+    print("\nLinear Regression Results:")
+    print(f"ROI Time: y = {a_roi:.2f}x + {b_roi:.2f}")
+    print(f"NPV: y = {a_npv:.2f}x + {b_npv:.2f}")
+    print(f"Profitability Index: y = {a_pi:.2f}x + {b_pi:.2f}")
+
+    # Logistic Regression
+    coefs_roi = logistic_regression(roi_times)
+    coefs_npv = logistic_regression(npvs)
+    coefs_pi = logistic_regression(profitability_indices)
+
+    print("\nLogistic Regression Results:")
+    print(f"ROI Time: y = 1 / (1 + e^(-({coefs_roi[0]:.2f} + {coefs_roi[1]:.2f}x)))")
+    print(f"NPV: y = 1 / (1 + e^(-({coefs_npv[0]:.2f} + {coefs_npv[1]:.2f}x)))")
+    print(f"Profitability Index: y = 1 / (1 + e^(-({coefs_pi[0]:.2f} + {coefs_pi[1]:.2f}x)))")
+
+
+if __name__ == "__main__":
+    main()
