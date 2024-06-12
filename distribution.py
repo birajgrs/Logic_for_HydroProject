@@ -7,7 +7,7 @@ def get_sector_data(sectors):
     for sector in sectors:
         revenue = sector["paid_for_nea"] - sector["other_expenses"]
         sector["revenue"] = revenue
-        sector["adjusted_percentage"] = sector["paid_for_nea"] / total_paid_for_nea
+        sector["adjusted_percentage"] = sector["paid_for_nea"] / total_paid_for_nea if total_paid_for_nea != 0 else 0
     return sectors
 
 
@@ -16,12 +16,12 @@ def adjust_distribution(sectors):
 
     for sector in sectors:
         revenue = sector["revenue"]
-        sector["adjusted_percentage"] += (revenue / total_percentage) * 0.1
+        sector["adjusted_percentage"] += (revenue / total_percentage) * 0.1 if total_percentage != 0 else 0
 
     # Normalize percentages to sum up to 1
     total_adjusted_percentage = sum(sector["adjusted_percentage"] for sector in sectors)
     for sector in sectors:
-        sector["adjusted_percentage"] /= total_adjusted_percentage
+        sector["adjusted_percentage"] /= total_adjusted_percentage if total_adjusted_percentage != 0 else 1
 
     return sectors
 
